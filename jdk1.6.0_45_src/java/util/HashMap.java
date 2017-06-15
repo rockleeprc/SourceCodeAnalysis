@@ -183,6 +183,9 @@ public class HashMap<K,V>
             capacity <<= 1;
 
         this.loadFactor = loadFactor;
+        /*
+        threshold = (int)(16 * 0.75) = 12
+        */
         threshold = (int)(capacity * loadFactor);
         table = new Entry[capacity];
         init();

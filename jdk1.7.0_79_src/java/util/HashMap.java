@@ -257,8 +257,8 @@ public class HashMap<K,V>
             throw new IllegalArgumentException("Illegal load factor: " +
                                                loadFactor);
 
-        this.loadFactor = loadFactor;
-        threshold = initialCapacity;
+        this.loadFactor = loadFactor; //0.75f
+        threshold = initialCapacity; //16
         init();
     }
 
@@ -510,7 +510,14 @@ public class HashMap<K,V>
      * Offloaded version of put for null keys
      */
     private V putForNullKey(V value) {
+        /*
+        key=null的情况都保存在table[0]的位置
+        对table[0]位置的链表进行遍历
+        */
         for (Entry<K,V> e = table[0]; e != null; e = e.next) {
+            /*
+            有key=null的情况 用新value替换老value 将老value返回
+            */
             if (e.key == null) {
                 V oldValue = e.value;
                 e.value = value;
@@ -519,6 +526,9 @@ public class HashMap<K,V>
             }
         }
         modCount++;
+        /*
+        table[0]中没有key=null的情况 正常添加一个
+        */
         addEntry(0, null, value, 0);
         return null;
     }
@@ -569,7 +579,7 @@ public class HashMap<K,V>
      *        capacity is MAXIMUM_CAPACITY (in which case value
      *        is irrelevant).
      */
-    void resize(int newCapacity) {
+    void add(int newCapacity) {
         Entry[] oldTable = table;
         int oldCapacity = oldTable.length;
         if (oldCapacity == MAXIMUM_CAPACITY) {
@@ -875,6 +885,14 @@ public class HashMap<K,V>
      * Subclass overrides this to alter the behavior of put method.
      */
     void addEntry(int hash, K key, V value, int bucketIndex) {
+        /*
+        table的大小超过阀值 && table[bucketIndex]中的位置已经存在(当前要插入的位置) 对table进行扩容
+        第一次扩容时 ：
+          threshold = initialCapacity     16
+        以后扩容时：
+          threshold = capacity*load factor
+        与jdk1.6扩容方式有差异
+        */
         if ((size >= threshold) && (null != table[bucketIndex])) {
             resize(2 * table.length);
             hash = (null != key) ? hash(key) : 0;
