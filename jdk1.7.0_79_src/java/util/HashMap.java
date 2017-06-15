@@ -644,7 +644,7 @@ public class HashMap<K,V>
      *        capacity is MAXIMUM_CAPACITY (in which case value
      *        is irrelevant).
      */
-    void add(int newCapacity) {
+    void resize(int newCapacity) {
         Entry[] oldTable = table;
         int oldCapacity = oldTable.length;
         if (oldCapacity == MAXIMUM_CAPACITY) {
@@ -874,9 +874,18 @@ public class HashMap<K,V>
     }
 
     static class Entry<K,V> implements Map.Entry<K,V> {
+        /*
+        final定义 key值不能修改
+        */
         final K key;
         V value;
+        /*
+        下一个Entry的引用
+        */
         Entry<K,V> next;
+        /*
+        key的hash值
+        */
         int hash;
 
         /**
@@ -932,6 +941,9 @@ public class HashMap<K,V>
          * in the HashMap.
          */
         void recordAccess(HashMap<K,V> m) {
+          /*
+          put()中保存entry时出现key相同的情况会被调用
+          */
         }
 
         /**
@@ -939,6 +951,9 @@ public class HashMap<K,V>
          * removed from the table.
          */
         void recordRemoval(HashMap<K,V> m) {
+          /*
+          Entry被移除时调用
+          */
         }
     }
 
