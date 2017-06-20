@@ -141,6 +141,12 @@ public class HashMap<K,V>
     /**
      * The load factor used when none specified in constructor.
      */
+     /*
+     增大负载因子可以减少Hash表（就是那个 Entry 数组）所占用的内存空间
+     但会增加查询数据的时间开销 而查询是最频繁的的操作(get()与put())
+     减小负载因子会提高数据查询的性能
+     但会增加Hash表所占用的内存空间
+     */
     static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
     /**
@@ -248,17 +254,26 @@ public class HashMap<K,V>
      *         or the load factor is nonpositive
      */
     public HashMap(int initialCapacity, float loadFactor) {
+        /*
+        初始容量不能为负数
+        */
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " +
                                                initialCapacity);
+        /*
+        初始容量大于最大容量
+        */
         if (initialCapacity > MAXIMUM_CAPACITY)
             initialCapacity = MAXIMUM_CAPACITY;
+        /*
+        负载因子必须大于 0 的数值
+        */
         if (loadFactor <= 0 || Float.isNaN(loadFactor))
             throw new IllegalArgumentException("Illegal load factor: " +
                                                loadFactor);
 
-        this.loadFactor = loadFactor;
-        threshold = initialCapacity;
+        this.loadFactor = loadFactor; //0.75f
+        threshold = initialCapacity; //16
         init();
     }
 
@@ -373,6 +388,15 @@ public class HashMap<K,V>
      */
     static int indexFor(int h, int length) {
         // assert Integer.bitCount(length) == 1 : "length must be a non-zero power of 2";
+        /*
+        当 length 总是 2 的倍数时:
+        h=5	length=16 	h & (length - 1) = 5
+        h=6	length=16	h & (length - 1) = 6
+        h=15	length=16	h & (length - 1) = 15
+        h=16	length=16	h & (length - 1) = 0
+        h=17 	length=1	h & (length - 1) = 1
+        保证计算得到的索引值总是位于 table 数组的索引之内
+        */
         return h & (length-1);
     }
 
@@ -412,6 +436,9 @@ public class HashMap<K,V>
      * @see #put(Object, Object)
      */
     public V get(Object key) {
+        /*
+        key=null特殊处理
+        */
         if (key == null)
             return getForNullKey();
         Entry<K,V> entry = getEntry(key);
@@ -458,12 +485,25 @@ public class HashMap<K,V>
         if (size == 0) {
             return null;
         }
-
+        /*
+        计算hash 根据hash值获取table[?]中的位置
+        */
         int hash = (key == null) ? 0 : hash(key);
+        /*
+        HashMap的table[?]位置只有一个Entry时 HashMap可以根据索引快速地取出该table[?]里的Entry
+        在发生hash crash的情况下 table[?]里存储是一个Entry链 必须按顺序遍历每个Entry 直到找到想搜索的Entry为止
+        如果恰好要搜索的Entry位于该Entry链的最末端 中效率最低
+        */
         for (Entry<K,V> e = table[indexFor(hash, table.length)];
              e != null;
+             /*
+             该 Entry 链的下一个 Entr
+             */
              e = e.next) {
             Object k;
+            /*
+            Entry中的key与get(key)相同
+            */
             if (e.hash == hash &&
                 ((k = e.key) == key || (key != null && key.equals(k))))
                 return e;
@@ -484,15 +524,38 @@ public class HashMap<K,V>
      *         previously associated <tt>null</tt> with <tt>key</tt>.)
      */
     public V put(K key, V value) {
+        /*
+        table等于空 按默认大小初始化
+        */
         if (table == EMPTY_TABLE) {
             inflateTable(threshold);
         }
+        /*
+        key==null 特殊处理
+        */
         if (key == null)
             return putForNullKey(value);
+        /*
+        根据key计算hashcode
+        */
         int hash = hash(key);
+        /*
+        根据key.hashcode计算table[]中的位置
+        */
         int i = indexFor(hash, table.length);
+        /*
+        如果 i 索引处的 Entry 不为 null，通过循环不断遍历 e 元素的下一个元素
+        循环中没有找到与放入key相等的Entry 表明此处还没有Entry 调用addEntry()
+        向HashMap中添加key-value 由其key.hashCode()决定该key-value的存储位置
+        当两个Entry对象的key.hashCode()返回值相同时 将由key.eqauls()比较值决定是采用覆盖行为（返回true）还是产生Entry链（返回 false）
+        */
         for (Entry<K,V> e = table[i]; e != null; e = e.next) {
             Object k;
+            /*
+            Entry中key与需要放入的key相等时比较key.equals()
+            Entry的key通过equals比较返回true 新添加Entry的value将覆盖集合中原有Entry的value key不会覆盖
+            Entry的key通过equals比较返回 false 新添加的Entry将与集合中原有Entry形成Entry链 且新添加的Entry位于Entry链的头部 具体见addEntry()
+            */
             if (e.hash == hash && ((k = e.key) == key || key.equals(k))) {
                 V oldValue = e.value;
                 e.value = value;
@@ -500,8 +563,10 @@ public class HashMap<K,V>
                 return oldValue;
             }
         }
-
         modCount++;
+        /*
+        将 key、value 添加到 i 索引处
+        */
         addEntry(hash, key, value, i);
         return null;
     }
@@ -510,7 +575,14 @@ public class HashMap<K,V>
      * Offloaded version of put for null keys
      */
     private V putForNullKey(V value) {
+        /*
+        key=null的情况都保存在table[0]的位置
+        对table[0]位置的链表进行遍历
+        */
         for (Entry<K,V> e = table[0]; e != null; e = e.next) {
+            /*
+            有key=null的情况 用新value替换老value 将老value返回
+            */
             if (e.key == null) {
                 V oldValue = e.value;
                 e.value = value;
@@ -519,6 +591,9 @@ public class HashMap<K,V>
             }
         }
         modCount++;
+        /*
+        table[0]中没有key=null的情况 正常添加一个
+        */
         addEntry(0, null, value, 0);
         return null;
     }
@@ -799,9 +874,18 @@ public class HashMap<K,V>
     }
 
     static class Entry<K,V> implements Map.Entry<K,V> {
+        /*
+        final定义 key值不能修改
+        */
         final K key;
         V value;
+        /*
+        下一个Entry的引用
+        */
         Entry<K,V> next;
+        /*
+        key的hash值
+        */
         int hash;
 
         /**
@@ -857,6 +941,9 @@ public class HashMap<K,V>
          * in the HashMap.
          */
         void recordAccess(HashMap<K,V> m) {
+          /*
+          put()中保存entry时出现key相同的情况会被调用
+          */
         }
 
         /**
@@ -864,6 +951,9 @@ public class HashMap<K,V>
          * removed from the table.
          */
         void recordRemoval(HashMap<K,V> m) {
+          /*
+          Entry被移除时调用
+          */
         }
     }
 
@@ -875,6 +965,14 @@ public class HashMap<K,V>
      * Subclass overrides this to alter the behavior of put method.
      */
     void addEntry(int hash, K key, V value, int bucketIndex) {
+        /*
+        table的大小超过阀值 && table[bucketIndex]中的位置已经存在(当前要插入的位置) 对table进行扩容
+        第一次扩容时 ：
+          threshold = initialCapacity     16
+        以后扩容时：
+          threshold = capacity*load factor
+        与jdk1.6扩容方式有差异
+        */
         if ((size >= threshold) && (null != table[bucketIndex])) {
             resize(2 * table.length);
             hash = (null != key) ? hash(key) : 0;
@@ -893,7 +991,16 @@ public class HashMap<K,V>
      * clone, and readObject.
      */
     void createEntry(int hash, K key, V value, int bucketIndex) {
+        /*
+        获取指定bucketIndex索引处的Entry
+        */
         Entry<K,V> e = table[bucketIndex];
+        /*
+        创建的Entry放入bucketIndex索引处 并让新的Entry指向原来的Entry
+        将新添加的Entry对象放入数组table[bucketIndex]索引处
+        如果bucketIndex索引处已经有了一个Entry对象 新添加的Entry对象指向原有的Entry对象（产生一个 Entry 链）
+        如果bucketIndex索引处没有Entry对象 Entry<K,V> e = null时新放入的Entry对象指向null 也就是没有产生Entry链
+        */
         table[bucketIndex] = new Entry<>(hash, key, value, e);
         size++;
     }

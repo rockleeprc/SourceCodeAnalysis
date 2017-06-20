@@ -178,11 +178,17 @@ public class HashMap<K,V>
                                                loadFactor);
 
         // Find a power of 2 >= initialCapacity
+        /*
+        计算出大于 initialCapacity 的最小的 2 的 n 次方值
+        */
         int capacity = 1;
         while (capacity < initialCapacity)
             capacity <<= 1;
 
         this.loadFactor = loadFactor;
+        /*
+        threshold = (int)(16 * 0.75) = 12
+        */
         threshold = (int)(capacity * loadFactor);
         table = new Entry[capacity];
         init();
