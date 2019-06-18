@@ -230,14 +230,20 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          */
         protected final boolean tryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
+            // 获取锁的持有状态
             int c = getState();
+            // 没有现成持有锁
             if (c == 0) {
+                // 公平锁，检查队列是否有别的线程在等待
                 if (!hasQueuedPredecessors() &&
+                    // cas尝试获取锁，如果没有获取到锁，说明锁被其它线程抢了
                     compareAndSetState(0, acquires)) {
+                    // 当前线程获取到锁，设置持有锁的线程
                     setExclusiveOwnerThread(current);
                     return true;
                 }
             }
+            // 当前线程已经持有锁了，重入+计数
             else if (current == getExclusiveOwnerThread()) {
                 int nextc = c + acquires;
                 if (nextc < 0)
@@ -245,6 +251,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
                 setState(nextc);
                 return true;
             }
+            // if()else()都没有获取到锁，返回false
             return false;
         }
     }
