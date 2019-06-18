@@ -672,8 +672,10 @@ public abstract class AbstractQueuedSynchronizer
          * to clear in anticipation of signalling.  It is OK if this
          * fails or if status is changed by waiting thread.
          */
+        // node=head
         int ws = node.waitStatus;
         if (ws < 0)
+            // head.waitStatus<0 cas设置waitStatus=0
             compareAndSetWaitStatus(node, ws, 0);
 
         /*
@@ -685,11 +687,13 @@ public abstract class AbstractQueuedSynchronizer
         Node s = node.next;
         if (s == null || s.waitStatus > 0) {
             s = null;
+            // 从队列tail向前查找waitStatus<=0的所有节点中最前面的
             for (Node t = tail; t != null && t != node; t = t.prev)
                 if (t.waitStatus <= 0)
                     s = t;
         }
         if (s != null)
+            // 唤醒线程，被唤醒的线程从parkAndCheckInterrupt()继续执行
             LockSupport.unpark(s.thread);
     }
 
