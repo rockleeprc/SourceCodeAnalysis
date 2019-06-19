@@ -485,6 +485,7 @@ public abstract class AbstractQueuedSynchronizer
          * we save a field by using special value to indicate shared
          * mode.
          */
+        /** 条件队列使用的单向链表节点 */ 
         Node nextWaiter;
 
         /**
@@ -1886,8 +1887,10 @@ public abstract class AbstractQueuedSynchronizer
     public class ConditionObject implements Condition, java.io.Serializable {
         private static final long serialVersionUID = 1173984872572414699L;
         /** First node of condition queue. */
+        /** 条件度列第一个节点 */
         private transient Node firstWaiter;
         /** Last node of condition queue. */
+        /** 条件队列最后一个节点 */
         private transient Node lastWaiter;
 
         /**
