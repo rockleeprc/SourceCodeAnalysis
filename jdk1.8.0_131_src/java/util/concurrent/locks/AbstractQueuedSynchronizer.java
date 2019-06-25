@@ -592,7 +592,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return node's predecessor
      */
     private Node enq(final Node node) {
-        // 采用自旋的方式进入队列，竞争一次不行，就多次竞争
+        // 采用自旋的方式进入队列，竞争一次不行，就多次竞争，只有将Node设置为tail才能返回
         for (;;) {
             Node t = tail;
             // 队列为空
@@ -629,7 +629,7 @@ public abstract class AbstractQueuedSynchronizer
         if (pred != null) {
             // 将当前队列tail节点设置为当前线程Node的前驱节点
             node.prev = pred;
-            // 使用cas将当前线程封Node对象设置为队列的tail
+            // 使用cas将当前线程Node对象设置为队列的tail
             if (compareAndSetTail(pred, node)) {
                 // 将当前线程设置为tail成功，将原队列的tail节点的后继节点设置为当前线程Node
                 // 与node.prev = pred;相呼应
@@ -643,7 +643,7 @@ public abstract class AbstractQueuedSynchronizer
                  */
             }
         }
-        // 第一种情况：compareAndSetTail(pred, node)失败，有其它线程在竞争入列
+        // 第一种情况：compareAndSetTail(pred, node)失败，有其它线程已经竞争入列
         // 第二种情况：队列为空时head=tail
         enq(node);
         return node;
@@ -898,16 +898,20 @@ public abstract class AbstractQueuedSynchronizer
      * @param arg the acquire argument
      * @return {@code true} if interrupted while waiting
      */
-    final boolean acquireQueued(final Node node, int arg) {
-        boolean failed = true;
+    boolean failed = true;
+        final boolean acquireQueued(final Node node, int arg) {
         try {
             boolean interrupted = false;
             for (;;) {
                 // 获取Node前驱节点
                 final Node p = node.predecessor();
-                // Node的前驱节点是head，说明Node在阻塞队列的第一个位置
-                // Node尝试去抢锁，head是持有锁的节点
-                // 尝试获取锁原因：1、Node是队列的第一个节点 2、初始化head时，head并没有关联任何线程
+                /*
+                    Node的前驱节点是head，说明Node在阻塞队列的第一个位置 
+                    Node尝试去抢锁，head是持有锁的节点
+                    尝试获取锁原因：
+                        1、Node是队列的第一个节点 
+                        2、初始化head时，head并没有关联任何线程
+                 */                 
                 if (p == head && tryAcquire(arg)) {
                     // 获取到锁，将Node设置为head
                     setHead(node);
@@ -915,9 +919,11 @@ public abstract class AbstractQueuedSynchronizer
                     failed = false;
                     return interrupted;
                 }
-                // 尝试获取锁失败，或者Node不在队列的第一个位置
-                // shouldParkAfterFailedAcquire()=true，前驱节点waitStatus=-1，当前线程需要被挂起
-                // shouldParkAfterFailedAcquire()=false，当前线程不需要挂起
+                /*
+                    尝试获取锁失败，或者Node不在队列的第一个位置
+                    shouldParkAfterFailedAcquire()=true，前驱节点waitStatus=-1，当前线程需要被挂起
+                    shouldParkAfterFailedAcquire()=false，当前线程不需要挂起
+                */
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     parkAndCheckInterrupt())
                     interrupted = true;
@@ -1252,6 +1258,7 @@ public abstract class AbstractQueuedSynchronizer
         if (!tryAcquire(arg) && 
             // 获取锁失败
             // addWaiter(Node.EXCLUSIVE) 将当前线程设置到队列tail
+            // acquireQueued()以死循环的方式获取锁
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
             // acquireQueued()返回true
             selfInterrupt();

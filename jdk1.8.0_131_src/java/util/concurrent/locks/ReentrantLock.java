@@ -233,7 +233,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             final Thread current = Thread.currentThread();
             // 获取锁的持有状态
             int c = getState();
-            // 没有现成持有锁
+            // 没有线程持有锁
             if (c == 0) {
                 // 公平锁，检查队列是否有别的线程在等待
                 if (!hasQueuedPredecessors() &&
