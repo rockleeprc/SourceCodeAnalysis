@@ -898,8 +898,9 @@ public abstract class AbstractQueuedSynchronizer
      * @param arg the acquire argument
      * @return {@code true} if interrupted while waiting
      */
-    boolean failed = true;
-        final boolean acquireQueued(final Node node, int arg) {
+    
+    final boolean acquireQueued(final Node node, int arg) {
+        boolean failed = true;
         try {
             boolean interrupted = false;
             for (;;) {
